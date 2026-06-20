@@ -1,0 +1,53 @@
+// Comudel Budget Planner — data model
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+/// An annual budget for a company (one per year in this prototype).
+model Budget {
+  id             String     @id @default(cuid())
+  year           Int        @unique
+  companyName    String     @default("Comudel")
+  initialBalance Decimal    @default(0) @db.Decimal(14, 2)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  categories     Category[]
+}
+
+/// A budget line (e.g. Vendas, Salários). Its type drives Receitas/Despesas grouping.
+model Category {
+  id        String         @id @default(cuid())
+  budgetId  String
+  name      String
+  type      CategoryType
+  sortOrder Int            @default(0)
+  budget    Budget         @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  months   MonthlyEntry[]
+
+  @@index([budgetId])
+}
+
+/// A single month's value for a category. amount is stored as a positive magnitude;
+/// the sign is derived from the parent category's type when computing totals.
+model MonthlyEntry {
+  id         String   @id @default(cuid())
+  categoryId String
+  month      Int // 1..12
+  amount     Decimal  @default(0) @db.Decimal(14, 2)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, month])
+  @@index([categoryId])
+}
