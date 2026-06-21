@@ -13,14 +13,14 @@ export interface CategoryDTO {
   name: string;
   type: CategoryType;
   sortOrder: number;
-  entries: MonthlyEntryDTO[]; // always length 12, month 1..12
+  months: MonthlyEntryDTO[]; // always length 12, month 1..12
 }
 
 export interface BudgetTotals {
-  receitaTotal: number;
-  despesaTotal: number;
-  resultado: number;
-  saldoInicial: number;
+  incomeTotal: number;
+  expenseTotal: number;
+  result: number;
+  initialBalance: number;
 }
 
 export interface BudgetDTO {

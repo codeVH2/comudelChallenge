@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma"; 
-import { computeTotal } from "@/lib/calculations";
-
+import { prisma } from "@/lib/prisma";
+import { getBudgetWithTotals } from "@/lib/budgets";
+import { updateBudgetSchema } from "@/lib/validation";
 
 export async function GET(
     request: Request,
@@ -9,25 +9,70 @@ export async function GET(
 
     const { id } = await params;
 
-    const budget = await prisma.budget.findUnique({
-        where: { id },
-        include: { categories: { include: { months: true } } },
-    });
+    const budget = await getBudgetWithTotals(id);
 
     if (!budget) {
         return Response.json({ error: "Budget not found" }, { status: 404 });
     }
 
-    const categories = budget.categories.map((category) =>({
-        ...category,
-        months: category.months.map((month) => ({
-            ...month,
-            amount: Number(month.amount)
-        }))
-    }))
+    return Response.json(budget);
 
-    const totals = computeTotal(categories, Number(budget.initialBalance));
+}
 
-    return Response.json({ ...budget, categories, totals });
+
+export async function PUT(
+    request: Request,
+    {params}: {params: Promise <{id: string}>}
+){
+    const { id } = await params;
+
+    const body = await request.json();
+
+    const parsed = updateBudgetSchema.safeParse(body);
+    
+    if(!parsed.success){
+        return Response.json({ error: parsed.error.issues }, { status: 400 });
+
+    }
+        
+    const data = parsed.data;
+
+    const existing = await prisma.budget.findUnique({ where: { id } });
+
+    if (!existing) {
+        return Response.json({ error: "Budget not found" }, { status: 404 });
+    }
+
+    //sei que o bugdet existe e a data esta validada com zod, falta gravar
+
+    await prisma.$transaction(async (tx) => {
+        
+        await tx.budget.update({where:{id}, data:{initialBalance: data.initialBalance}});
+        
+        await tx.category.deleteMany({where:{budgetId: id}});
+        
+        for(const category of data.categories){
+            await tx.category.create({
+                data:
+                {
+                    budgetId: id,
+                    name: category.name,
+                    type: category.type,
+                    sortOrder: category.sortOrder,
+                    months:
+                        {
+                            create: category.months.map((m) => ({
+                                month: m.month,
+                                amount: m.amount
+                            }))
+                        }
+                }
+            })
+        }
+    });
+
+    const updated = await getBudgetWithTotals(id);
+
+    return Response.json(updated);
 
 }
