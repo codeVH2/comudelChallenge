@@ -19,7 +19,6 @@ CREATE TABLE "Category" (
     "budgetId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "type" "CategoryType" NOT NULL,
-    "sortOrder" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "Category_pkey" PRIMARY KEY ("id")
 );

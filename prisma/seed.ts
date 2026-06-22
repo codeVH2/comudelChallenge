@@ -57,10 +57,9 @@ async function main() {
       companyName: "Comudel",
       initialBalance: 10000,
       categories: {
-        create: CATEGORIES.map((cat, index) => ({
+        create: CATEGORIES.map((cat) => ({
           name: cat.name,
           type: cat.type,
-          sortOrder: index,
           months: {
             create: cat.monthly.map((amount, i) => ({
               month: i + 1,

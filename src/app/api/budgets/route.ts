@@ -2,7 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { createBudgetSchema } from "@/lib/validation";
 
 export async function GET() {
-  const budgets = await prisma.budget.findMany();
+  const budgets = await prisma.budget.findMany({
+    select: { id: true, year: true },
+  });
+
   return Response.json(budgets);
 }
 
@@ -31,7 +34,6 @@ export async function POST(request: Request) {
   const newBudget = await prisma.budget.create({
     data: {
       year: data.year,
-      companyName: data.companyName,
       initialBalance: data.initialBalance,
     },
   });

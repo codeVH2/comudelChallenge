@@ -32,7 +32,6 @@ model Category {
   budgetId  String
   name      String
   type      CategoryType
-  sortOrder Int            @default(0)
   budget    Budget         @relation(fields: [budgetId], references: [id], onDelete: Cascade)
   months   MonthlyEntry[]
 

@@ -1,6 +1,3 @@
-// Shared, serialization-friendly types passed between the API and the UI.
-// Decimal values from Prisma are converted to plain numbers at the API boundary.
-
 export type CategoryType = "INCOME" | "EXPENSE";
 
 export interface MonthlyEntryDTO {
@@ -12,7 +9,6 @@ export interface CategoryDTO {
   id: string;
   name: string;
   type: CategoryType;
-  sortOrder: number;
   months: MonthlyEntryDTO[]; // always length 12, month 1..12
 }
 
@@ -39,17 +35,17 @@ export interface BudgetSummary {
   totals: BudgetTotals;
 }
 
-export const MONTHS_PT = [
+export const MONTHS = [
   "Jan",
-  "Fev",
+  "Feb",
   "Mar",
-  "Abr",
-  "Mai",
+  "Apr",
+  "May",
   "Jun",
   "Jul",
-  "Ago",
-  "Set",
-  "Out",
+  "Aug",
+  "Sep",
+  "Oct",
   "Nov",
-  "Dez",
+  "Dec",
 ] as const;

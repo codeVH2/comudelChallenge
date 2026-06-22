@@ -3,76 +3,83 @@ import { getBudgetWithTotals } from "@/lib/budgets";
 import { updateBudgetSchema } from "@/lib/validation";
 
 export async function GET(
-    request: Request,
-    {params}: {params: Promise <{id: string}>}
-){
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
 
-    const { id } = await params;
+  const budget = await getBudgetWithTotals(id);
 
-    const budget = await getBudgetWithTotals(id);
+  if (!budget) {
+    return Response.json({ error: "Budget not found" }, { status: 404 });
+  }
 
-    if (!budget) {
-        return Response.json({ error: "Budget not found" }, { status: 404 });
-    }
-
-    return Response.json(budget);
-
+  return Response.json(budget);
 }
 
-
 export async function PUT(
-    request: Request,
-    {params}: {params: Promise <{id: string}>}
-){
-    const { id } = await params;
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
 
-    const body = await request.json();
+  const body = await request.json();
 
-    const parsed = updateBudgetSchema.safeParse(body);
-    
-    if(!parsed.success){
-        return Response.json({ error: parsed.error.issues }, { status: 400 });
+  const parsed = updateBudgetSchema.safeParse(body);
 
+  if (!parsed.success) {
+    return Response.json({ error: parsed.error.issues }, { status: 400 });
+  }
+
+  const data = parsed.data;
+
+  const existing = await prisma.budget.findUnique({ where: { id } });
+
+  if (!existing) {
+    return Response.json({ error: "Budget not found" }, { status: 404 });
+  }
+
+  //sei que o bugdet existe e a data esta validada com zod, falta gravar
+
+  await prisma.$transaction(async (tx) => {
+    await tx.category.deleteMany({ where: { budgetId: id } });
+
+    for (const category of data.categories) {
+      await tx.category.create({
+        data: {
+          budgetId: id,
+          name: category.name,
+          type: category.type,
+          months: {
+            create: category.months.map((m) => ({
+              month: m.month,
+              amount: m.amount,
+            })),
+          },
+        },
+      });
     }
-        
-    const data = parsed.data;
+  });
 
-    const existing = await prisma.budget.findUnique({ where: { id } });
+  const updated = await getBudgetWithTotals(id);
 
-    if (!existing) {
-        return Response.json({ error: "Budget not found" }, { status: 404 });
-    }
+  return Response.json(updated);
+}
 
-    //sei que o bugdet existe e a data esta validada com zod, falta gravar
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
 
-    await prisma.$transaction(async (tx) => {
-        
-        await tx.budget.update({where:{id}, data:{initialBalance: data.initialBalance}});
-        
-        await tx.category.deleteMany({where:{budgetId: id}});
-        
-        for(const category of data.categories){
-            await tx.category.create({
-                data:
-                {
-                    budgetId: id,
-                    name: category.name,
-                    type: category.type,
-                    sortOrder: category.sortOrder,
-                    months:
-                        {
-                            create: category.months.map((m) => ({
-                                month: m.month,
-                                amount: m.amount
-                            }))
-                        }
-                }
-            })
-        }
-    });
+  const { id } = await params;
 
-    const updated = await getBudgetWithTotals(id);
+  const existing = await prisma.budget.findUnique({ where: { id } });
 
-    return Response.json(updated);
+  if (!existing) {
+    return Response.json({ error: "Budget not found" }, { status: 404 });
+  }
 
+  await prisma.budget.delete({where: {id} });
+
+  return new Response(null, { status: 204 })
 }
